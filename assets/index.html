@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nettoyage du disque</title>
+<style>
+:root{--bg:#f6f6f4;--card:#fff;--ink:#1d1d1b;--mute:#6b6b66;--line:#e4e4df;--safe:#1f8a4c;--safe-bg:#e3f4ea;--rev:#b86e00;--rev-bg:#fbefd9;--acc:#3b5bdb;--bad:#c92a2a;
+--t1:#dfe3fb;--t2:#fbe0e6;--t3:#dcefe9;--t4:#fdebd3;--t5:#ece2fa;--t6:#e3eef9}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#151514;--card:#1f1f1d;--ink:#ecece8;--mute:#9a9a93;--line:#33332f;--safe:#4cc27a;--safe-bg:#18301f;--rev:#e9a23b;--rev-bg:#33270f;--acc:#8ea2ff;--bad:#ff8787;
+--t1:#2a2f52;--t2:#4a2a33;--t3:#21403a;--t4:#4a3820;--t5:#3a2d52;--t6:#22384d}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,sans-serif}
+.wrap{max-width:1400px;margin:0 auto;padding:20px 16px}
+h1{font-size:20px;margin:0 0 4px}.sub{color:var(--mute);margin-bottom:16px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.k{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.k .l{color:var(--mute);font-size:12px;display:flex;align-items:center;gap:6px}.k .v{font-size:26px;font-weight:650;margin-top:4px}.k .v small{font-size:12px;font-weight:400;color:var(--mute);margin-left:6px}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.main{display:grid;grid-template-columns:1fr 420px;gap:12px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}
+.ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.ph h2{font-size:15px;margin:0}
+.crumb{color:var(--mute);font-size:12px;margin-bottom:8px;display:flex;gap:4px;flex-wrap:wrap}.crumb a{color:var(--acc);cursor:pointer}
+#tm{position:relative;height:620px;border-radius:8px;overflow:hidden}
+.cell{position:absolute;border:1px solid var(--card);border-radius:6px;padding:6px 7px;overflow:hidden;cursor:pointer;font-size:12px;transition:filter .1s}
+.cell:hover{filter:brightness(.94)}.cell b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cell span{color:var(--mute);font-size:11px}
+.cell.leaf{cursor:default}.cell.o{opacity:.6}
+.cell.hs{background-image:repeating-linear-gradient(45deg,transparent 0 6px,color-mix(in srgb,var(--safe) 22%,transparent) 6px 8px)!important;outline:2px solid var(--safe);outline-offset:-2px}
+.cell.hr{background-image:repeating-linear-gradient(45deg,transparent 0 6px,color-mix(in srgb,var(--rev) 22%,transparent) 6px 8px)!important}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--mute);margin-top:8px;flex-wrap:wrap}
+.sec{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding:4px 8px;border-radius:6px;margin:10px 0 6px;display:flex;justify-content:space-between}
+.sec.safe{background:var(--safe-bg);color:var(--safe)}.sec.review{background:var(--rev-bg);color:var(--rev)}.sec.ex{background:var(--line);color:var(--mute)}
+.rec{display:grid;grid-template-columns:20px 1fr auto;gap:8px;align-items:start;padding:7px 4px;border-bottom:1px solid var(--line)}
+label.rec{cursor:pointer}label.rec:hover{background:color-mix(in srgb,var(--acc) 6%,transparent)}
+.rec .t{font-weight:550}.rec .p{color:var(--mute);font-size:11px;word-break:break-all}.rec .n{font-size:11px;color:var(--mute)}.rec .s{font-weight:600;white-space:nowrap}
+.rec input{margin-top:3px;accent-color:var(--acc)}.rec.done{opacity:.5}.rec.done .t::after{content:" — dans la Corbeille ✓";font-weight:400;color:var(--safe)}
+.rec code{display:inline-block;margin-top:3px;font:11px ui-monospace,Menlo,Consolas,monospace;background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:1px 5px}
+.mini{font-size:11px;padding:2px 8px;margin-top:4px}
+#recs{max-height:470px;overflow:auto}
+.bar{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
+button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:7px 12px;cursor:pointer}button.pri{background:var(--acc);color:#fff;border-color:var(--acc)}button:disabled{opacity:.5;cursor:default}
+pre{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;font:11.5px/1.45 ui-monospace,Menlo,Consolas,monospace;max-height:220px;overflow:auto;white-space:pre-wrap;word-break:break-all}
+pre:empty{display:none}.ko{color:var(--bad)}
+.warn{font-size:12px;color:var(--mute);margin-top:8px}
+#wait{padding:60px 0;text-align:center;color:var(--mute);font-size:15px}
+@media (max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}.main{grid-template-columns:1fr}#tm{height:420px}}
+</style></head><body><div class="wrap">
+<h1>Nettoyage du disque</h1><div class="sub" id="sub"></div>
+<div id="wait">Analyse du dossier personnel…</div>
+<div id="ui" hidden>
+<div class="kpis">
+ <div class="k"><div class="l">Libre après nettoyage + Corbeille vidée (estimation)</div><div class="v" id="k1"></div></div>
+ <div class="k"><div class="l"><i class="dot" style="background:var(--safe)"></i>Sans risque à retirer</div><div class="v" id="k2"></div></div>
+ <div class="k"><div class="l"><i class="dot" style="background:var(--rev)"></i>À examiner</div><div class="v" id="k3"></div></div>
+ <div class="k"><div class="l">Non analysé (accès refusé)</div><div class="v" id="k4"></div></div>
+</div>
+<div class="main">
+ <div class="panel"><div class="ph"><h2>Explorateur</h2><span class="crumb" style="margin:0">Clic = ouvrir le dossier</span></div>
+  <div class="crumb" id="crumb"></div><div id="tm"></div>
+  <div class="legend"><span><i class="dot" style="background:var(--safe)"></i> hachuré vert : sans risque</span><span><i class="dot" style="background:var(--rev)"></i> hachuré orange : à examiner</span></div></div>
+ <div class="panel"><div class="ph"><h2>Recommandations</h2><span id="seltot" class="s"></span></div>
+  <div class="crumb" style="margin:0">Coche les éléments à placer dans la Corbeille.</div>
+  <div id="recs"></div>
+  <div class="bar"><button class="pri" id="go">Mettre à la Corbeille</button><button id="none">Tout décocher</button><button id="again">Relancer l'analyse</button><button id="quit">Quitter</button></div>
+  <pre id="log"></pre>
+  <div class="warn">Rien n'est supprimé sans ta confirmation. Les éléments vont dans la Corbeille (récupérables) : vide-la ensuite pour libérer l'espace. Les dossiers personnels s'ouvrent pour un tri à la main.</div></div>
+</div></div></div>
+<script>
+const T=new URLSearchParams(location.search).get('t')||'';
+const $=id=>document.getElementById(id);
+const api=(p,b)=>fetch(p,{method:b?'POST':'GET',headers:{'X-Token':T,'Content-Type':'application/json'},body:b?JSON.stringify(b):undefined}).then(async r=>{const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||('HTTP '+r.status));return j});
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=b=>{const g=b/1e9;return g>=10?g.toFixed(0)+' Go':g>=1?g.toFixed(1)+' Go':(b/1e6).toFixed(0)+' Mo'};
+const sum=a=>a.reduce((x,r)=>x+r.s,0);
+const OS={macos:'macOS',windows:'Windows',linux:'Linux'};
+const DEL=new Set(['trash','empty']);
+let D,done=new Set(),sel=new Set(),stack=[];
+
+async function load(){
+ let r;try{r=await api('/api/data')}catch(e){$('wait').textContent='Page expirée : relance l’application ('+e.message+').';return}
+ if(r.scanning){$('wait').textContent=`Analyse du dossier personnel… ${(r.dirs||0).toLocaleString('fr')} dossiers parcourus`;setTimeout(load,700);return}
+ D=r.data;done=new Set(r.done);stack=[D.tree];
+ sel=new Set(D.recs.filter(x=>x.c==='safe'&&DEL.has(x.a)&&!done.has(x.id)).map(x=>x.id));
+ $('wait').hidden=true;$('ui').hidden=false;render();
+}
+function render(){
+ const live=D.recs.filter(r=>!done.has(r.id)),safe=live.filter(r=>r.c==='safe'),rev=live.filter(r=>r.c==='review');
+ $('sub').textContent=`${OS[D.os]||D.os} · analyse du ${new Date(D.at).toLocaleString('fr')} · ${fmt(D.total-D.free)} utilisés sur ${fmt(D.total)} · ${D.files.toLocaleString('fr')} dossiers mesurés`;
+ $('k1').innerHTML=`${fmt(D.free+sum(safe))}<small>+${fmt(sum(safe))} (libre : ${fmt(D.free)})</small>`;
+ $('k2').innerHTML=`${fmt(sum(safe))}<small>${safe.length} éléments</small>`;
+ $('k3').innerHTML=`${fmt(sum(rev))}<small>${rev.length} éléments</small>`;
+ $('k4').innerHTML=`${D.deniedCount}<small>${esc(D.denied.slice(0,4).map(p=>p.split('/').pop()).join(', '))}</small>`;
+ recs();draw();
+}
+// --- treemap squarifiée ---
+const pal=['--t1','--t2','--t3','--t4','--t5','--t6'];
+function squarify(items,x,y,w,h,out){
+ if(!items.length)return;const total=items.reduce((a,b)=>a+b.v,0);if(total<=0)return;
+ let row=[],i=0;const short=Math.min(w,h);
+ const worst=(r,s)=>{const t=r.reduce((a,b)=>a+b.v,0),mx=Math.max(...r.map(e=>e.v)),mn=Math.min(...r.map(e=>e.v));return Math.max(s*s*mx/(t*t),t*t/(s*s*mn))};
+ const scale=w*h/total;
+ while(i<items.length){const it={...items[i],v:items[i].v*scale};const nr=[...row,it];
+  if(!row.length||worst(nr,short)<=worst(row,short)){row=nr;i++}else break}
+ const rt=row.reduce((a,b)=>a+b.v,0);
+ if(w>=h){const rw=rt/h;let yy=y;row.forEach(e=>{const eh=e.v/rw;out.push({...e,x,y:yy,w:rw,h:eh});yy+=eh});squarify(items.slice(i),x+rw,y,w-rw,h,out)}
+ else{const rh=rt/w;let xx=x;row.forEach(e=>{const ew=e.v/rh;out.push({...e,x:xx,y,w:ew,h:rh});xx+=ew});squarify(items.slice(i),x,y+rh,w,h-rh,out)}
+}
+function draw(){
+ if(!D)return;const recBy=new Map(D.recs.filter(r=>!done.has(r.id)).map(r=>[r.p,r]));
+ const n=stack[stack.length-1],el=$('tm');el.innerHTML='';
+ const crumb=$('crumb');
+ crumb.innerHTML=stack.map((s,i)=>i<stack.length-1?`<a data-i="${i}">${esc(i?s.n:'~')}</a> ›`:`<b>${esc(i?s.n:'~')}</b> · ${fmt(s.s)}`).join(' ');
+ crumb.querySelectorAll('a').forEach(a=>a.onclick=()=>{stack=stack.slice(0,+a.dataset.i+1);draw()});
+ const kids=(n.c||[{...n,c:null}]).filter(c=>c.s>0).map((c,k)=>({...c,v:c.s,k}));
+ const out=[];squarify(kids,0,0,el.clientWidth,el.clientHeight,out);
+ out.forEach(c=>{const d=document.createElement('div');const r=recBy.get(c.p);
+  d.className='cell'+(c.c?'':' leaf')+(c.o?' o':'')+(r?(r.c==='safe'?' hs':' hr'):'');
+  d.style.cssText=`left:${c.x}px;top:${c.y}px;width:${c.w}px;height:${c.h}px;background:var(${pal[c.k%pal.length]})`;
+  d.title=`${c.p}\n${fmt(c.s)}${r?'\n→ '+r.t:''}`;
+  if(c.w>46&&c.h>30)d.innerHTML=`<b>${esc(c.n)}</b><span>${fmt(c.s)}</span>`;
+  if(c.c)d.onclick=()=>{stack.push(c);draw()};el.appendChild(d)});
+}
+// --- recommandations ---
+function row(r){
+ const body=`<div><div class="t">${esc(r.t)}</div><div class="p">${esc(r.p)}</div><div class="n">${esc(r.note)}</div>`+
+  (r.a==='cmd'?`<code>${esc(r.cmd)}</code> <button class="mini" data-copy="${esc(r.id)}">Copier</button>`:'')+
+  (r.a==='open'?`<button class="mini" data-open="${esc(r.id)}">Ouvrir le dossier</button>`:'')+`</div><div class="s">${fmt(r.s)}</div>`;
+ const cls='rec'+(done.has(r.id)?' done':'');
+ if(DEL.has(r.a)&&!done.has(r.id))return `<label class="${cls}"><input type="checkbox" data-id="${esc(r.id)}" ${sel.has(r.id)?'checked':''}>${body}</label>`;
+ return `<div class="${cls}"><span></span>${body}</div>`;
+}
+function recs(){
+ const box=$('recs'),safe=D.recs.filter(r=>r.c==='safe'),rev=D.recs.filter(r=>r.c==='review');
+ const sec=(cls,label,list)=>`<div class="sec ${cls}"><span>${label}</span><span>${fmt(sum(list.filter(r=>!done.has(r.id))))}</span></div>`+list.map(row).join('');
+ box.innerHTML=(D.recs.length?'':'<div class="n" style="padding:8px">Rien à signaler au-dessus de 20 Mo.</div>')+sec('safe','Sans risque',safe)+sec('review','À examiner',rev)+
+  (D.excluded.length?`<div class="sec ex"><span>Exclu</span><span></span></div>`+D.excluded.map(([p,n])=>`<div class="rec"><span></span><div><div class="p">${esc(p)}</div><div class="n">${esc(n)}</div></div><span></span></div>`).join(''):'');
+ box.querySelectorAll('input').forEach(i=>i.onchange=()=>{i.checked?sel.add(i.dataset.id):sel.delete(i.dataset.id);total()});
+ box.querySelectorAll('[data-copy]').forEach(b=>b.onclick=e=>{e.preventDefault();const r=D.recs.find(x=>x.id===b.dataset.copy);navigator.clipboard.writeText(r.cmd).then(()=>{b.textContent='Copié ✓'})});
+ box.querySelectorAll('[data-open]').forEach(b=>b.onclick=e=>{e.preventDefault();api('/api/open',{id:b.dataset.open}).catch(err=>log(`✗ ouverture : ${err.message}`,true))});
+ total();
+}
+function chosen(){return D.recs.filter(r=>sel.has(r.id)&&!done.has(r.id))}
+function total(){const l=chosen();$('seltot').textContent=l.length?`${fmt(sum(l))} sélectionnés`:'';$('go').disabled=!l.length;$('go').textContent=l.length?`Mettre à la Corbeille (${l.length})`:'Mettre à la Corbeille'}
+function log(t,bad){const p=$('log');p.innerHTML+=`<span class="${bad?'ko':''}">${esc(t)}</span>\n`;p.scrollTop=p.scrollHeight}
+$('go').onclick=async()=>{
+ const l=chosen();if(!l.length)return;
+ if(!confirm(`Placer ${l.length} élément(s), ${fmt(sum(l))}, dans la Corbeille ?\n\n`+l.map(r=>'• '+r.p).join('\n')))return;
+ $('go').disabled=true;
+ try{const r=await api('/api/trash',{ids:l.map(x=>x.id)});
+  for(const x of r.results){const rec=D.recs.find(y=>y.id===x.id);if(x.ok){done.add(x.id);sel.delete(x.id)}log(`${x.ok?'✓':'✗'} ${rec.p}${x.msg?' — '+x.msg:''}`,!x.ok)}
+  log('Vide la Corbeille pour libérer l’espace.');
+ }catch(e){log('✗ '+e.message,true)}
+ render();
+};
+$('none').onclick=()=>{sel.clear();recs()};
+$('again').onclick=()=>api('/api/rescan',{}).then(()=>{$('ui').hidden=true;$('wait').hidden=false;$('log').innerHTML='';load()});
+$('quit').onclick=()=>api('/api/quit',{}).finally(()=>{document.body.innerHTML='<div id="wait">Application arrêtée. Tu peux fermer cet onglet.</div>'});
+addEventListener('resize',draw);
+if(!T)$('wait').textContent='Ouvre la page depuis l’application (adresse affichée dans le terminal).';else load();
+</script></body></html>
