@@ -11,7 +11,7 @@
 h1{font-size:20px;margin:0 0 4px}.sub{color:var(--mute);margin-bottom:16px}
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
 .k{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
-.k .l{color:var(--mute);font-size:12px;display:flex;align-items:center;gap:6px}.k .v{font-size:26px;font-weight:650;margin-top:4px}.k .v small{font-size:12px;font-weight:400;color:var(--mute);margin-left:6px}
+.k .l{color:var(--mute);font-size:12px;display:flex;align-items:center;gap:6px}.k .v{font-size:26px;font-weight:650;margin-top:4px}.k .v small{font-size:12px;font-weight:400;color:var(--mute);margin-left:6px}.k .dn{font-size:11px;color:var(--mute);margin-top:4px;overflow-wrap:anywhere}
 .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
 .main{display:grid;grid-template-columns:1fr 420px;gap:12px}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}
@@ -85,7 +85,8 @@ function render(){
  $('k1').innerHTML=`${fmt(D.free+sum(safe))}<small>+${fmt(sum(safe))} (libre : ${fmt(D.free)})</small>`;
  $('k2').innerHTML=`${fmt(sum(safe))}<small>${safe.length} éléments</small>`;
  $('k3').innerHTML=`${fmt(sum(rev))}<small>${rev.length} éléments</small>`;
- $('k4').innerHTML=`${D.deniedCount}<small>${esc(D.denied.slice(0,4).map(p=>p.split('/').pop()).join(', '))}</small>`;
+ const nd=D.deniedCount,court=p=>{const s=p.split('/');return s.length>4?[s[0],s[1],s[2],'…',s[s.length-1]].join('/'):p};
+ $('k4').innerHTML=`${nd}<small>${nd>1?'dossiers':'dossier'}</small>`+(nd?`<div class="dn" title="${esc(D.denied.join('\n'))}">${D.denied.slice(0,3).map(p=>esc(court(p))).join('<br>')}${nd>3?'<br>…':''}</div>`:'');
  recs();draw();
 }
 // --- treemap squarifiée ---

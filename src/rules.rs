@@ -31,6 +31,13 @@ pub struct Children {
     pub rel: &'static str,
     pub prefix: &'static str,
     pub note: &'static str,
+    /// Sous-dossiers jamais proposés (caches gérés par le système).
+    pub keep: &'static [&'static str],
+}
+
+/// Vrai si ce sous-dossier ne doit jamais être proposé.
+pub fn kept(ch: &Children, name: &str) -> bool {
+    ch.keep.contains(&name)
 }
 
 use Action::*;
@@ -90,11 +97,16 @@ pub fn rules() -> impl Iterator<Item = &'static Rule> {
 
 pub fn children() -> &'static [Children] {
     #[cfg(target_os = "macos")]
-    return &[Children { rel: "Library/Caches", prefix: "Cache — ", note: "Fermer l'application avant ; recréé automatiquement" }];
+    return &[Children {
+        rel: "Library/Caches",
+        prefix: "Cache — ",
+        note: "Fermer l'application avant ; recréé automatiquement",
+        keep: &["CloudKit"],
+    }];
     #[cfg(target_os = "windows")]
     return &[];
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-    return &[Children { rel: ".cache", prefix: "Cache — ", note: "Fermer l'application avant ; recréé automatiquement" }];
+    return &[Children { rel: ".cache", prefix: "Cache — ", note: "Fermer l'application avant ; recréé automatiquement", keep: &[] }];
 }
 
 /// Affiché dans « Exclu » ; jamais recommandé.
@@ -103,6 +115,7 @@ pub fn excluded() -> &'static [(&'static str, &'static str)] {
     return &[
         ("Library/Mobile Documents", "iCloud Drive : libérer depuis le Finder (« Supprimer le téléchargement »)"),
         ("Library/CloudStorage", "Google Drive, OneDrive, Dropbox : gérés par leur application (non analysés)"),
+        ("Library/Caches/CloudKit", "Cache iCloud de macOS : géré par le système, jamais proposé"),
     ];
     #[cfg(target_os = "windows")]
     return &[
@@ -119,4 +132,24 @@ pub fn skip_walk() -> &'static [&'static str] {
     return &["Library/CloudStorage"];
     #[cfg(not(target_os = "macos"))]
     return &[];
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn un_sous_dossier_garde_n_est_jamais_propose() {
+        let ch = Children { rel: "Library/Caches", prefix: "", note: "", keep: &["CloudKit"] };
+        assert!(kept(&ch, "CloudKit"));
+        assert!(!kept(&ch, "com.spotify.client"));
+        assert!(!kept(&ch, "cloudkit"));
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn cloudkit_est_garde_et_affiche_dans_exclu_sur_macos() {
+        assert!(children().iter().any(|ch| ch.rel == "Library/Caches" && kept(ch, "CloudKit")));
+        assert!(excluded().iter().any(|(rel, _)| *rel == "Library/Caches/CloudKit"));
+    }
 }

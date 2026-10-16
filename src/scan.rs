@@ -296,7 +296,7 @@ pub fn scan(home: &Path, progress: &AtomicU64) -> ScanResult {
     for ch in rules::children() {
         let Ok(rd) = fs::read_dir(rel_path(home, ch.rel)) else { continue };
         for e in rd.flatten() {
-            if e.file_type().is_ok_and(|t| t.is_dir()) {
+            if e.file_type().is_ok_and(|t| t.is_dir()) && !rules::kept(ch, &e.file_name().to_string_lossy()) {
                 let title = format!("{}{}", ch.prefix, e.file_name().to_string_lossy());
                 push(&mut recs, e.path(), title, Class::Safe, Action::Trash, ch.note);
             }
